@@ -1,18 +1,16 @@
-import 'dart:html';
+import 'dart:js_interop';
 
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:js/js.dart';
 import 'package:js/js_util.dart';
 import 'package:rich_clipboard_platform_interface/rich_clipboard_platform_interface.dart';
+import 'package:web/web.dart';
 
 const _kMimeTextPlain = 'text/plain';
 const _kMimeTextHtml = 'text/html';
 
 bool _detectClipboardApi() {
   final clipboard = window.navigator.clipboard;
-  if (clipboard == null) {
-    return false;
-  }
   for (final methodName in ['read', 'write']) {
     final method = getProperty(clipboard, methodName);
     if (method == null) {
@@ -66,11 +64,11 @@ class RichClipboardWeb extends RichClipboardPlatform {
     String? html;
     if (availableTypes.contains(_kMimeTextPlain)) {
       final textBlob = await item.getType('text/plain');
-      text = await textBlob.text();
+      text = (await textBlob.text().toDart).toDart;
     }
     if (availableTypes.contains(_kMimeTextHtml)) {
       final htmlBlob = await item.getType('text/html');
-      html = await htmlBlob.text();
+      html = (await htmlBlob.text().toDart).toDart;
     }
 
     return RichClipboardData(
@@ -96,7 +94,11 @@ class RichClipboardWeb extends RichClipboardPlatform {
               // the future, use the .characters getter from the characters
               // package to safely split the string into unicode grapheme
               // clusters.
-              Blob([entry.value!], entry.key),
+
+              Blob(
+                [entry.value!.toJS].toJS,
+                BlobPropertyBag(type: entry.key),
+              ),
             ),
           ),
     );
