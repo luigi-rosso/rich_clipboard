@@ -1,8 +1,7 @@
-import 'dart:js_interop';
-
+import 'dart:js_interop' as js;
+import 'dart:js_interop_unsafe';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'package:js/js.dart';
-import 'package:js/js_util.dart';
+
 import 'package:rich_clipboard_platform_interface/rich_clipboard_platform_interface.dart';
 import 'package:web/web.dart';
 
@@ -12,7 +11,7 @@ const _kMimeTextHtml = 'text/html';
 bool _detectClipboardApi() {
   final clipboard = window.navigator.clipboard;
   for (final methodName in ['read', 'write']) {
-    final method = getProperty(clipboard, methodName);
+    final method = clipboard.getProperty(methodName.toJS);
     if (method == null) {
       return false;
     }
@@ -104,49 +103,47 @@ class RichClipboardWeb extends RichClipboardPlatform {
     );
 
     final items = <_ClipboardItem>[
-      if (dataMap.isNotEmpty) _ClipboardItem(jsify(dataMap))
+      if (dataMap.isNotEmpty) _ClipboardItem(dataMap.jsify())
     ];
     await clipboard.write(items);
   }
 }
 
-@JS('Blob')
-@staticInterop
+@js.JS('Blob')
+@js.staticInterop
 extension _BlobText on Blob {
-  @JS('text')
-  external dynamic _text();
-  Future<String> text() => promiseToFuture<String>(_text());
+  @js.JS('text')
+  external js.JSPromise<js.JSString> _text();
+  Future<String> text() async => (await _text().toDart).toDart;
 }
 
-@JS('ClipboardItem')
-@staticInterop
+@js.JS('ClipboardItem')
+@js.staticInterop
 class _ClipboardItem {
   external factory _ClipboardItem(dynamic args);
 }
 
 extension _ClipboardItemImpl on _ClipboardItem {
-  @JS('getType')
-  external dynamic _getType(String mimeType);
-  Future<Blob> getType(String mimeType) =>
-      promiseToFuture<Blob>(_getType(mimeType));
+  @js.JS('getType')
+  external js.JSPromise<Blob> _getType(String mimeType);
+  Future<Blob> getType(String mimeType) => _getType(mimeType).toDart;
 
-  @JS('types')
+  @js.JS('types')
   external List<dynamic> get _types;
   List<String> get types => _types.cast<String>();
 }
 
-@JS('Clipboard')
-@staticInterop
+@js.JS('Clipboard')
+@js.staticInterop
 class _Clipboard {}
 
 extension _ClipboardImpl on _Clipboard {
-  @JS('read')
-  external dynamic _read();
-  Future<List<_ClipboardItem>> read() => promiseToFuture<List<dynamic>>(_read())
-      .then((list) => list.cast<_ClipboardItem>());
+  @js.JS('read')
+  external js.JSPromise<js.JSArray> _read();
+  Future<List<_ClipboardItem>> read() =>
+      _read().toDart.then((list) => list.toDart.cast<_ClipboardItem>());
 
-  @JS('write')
-  external dynamic _write(List<_ClipboardItem> items);
-  Future<void> write(List<_ClipboardItem> items) =>
-      promiseToFuture(_write(items));
+  @js.JS('write')
+  external js.JSPromise _write(List<_ClipboardItem> items);
+  Future<void> write(List<_ClipboardItem> items) => _write(items).toDart;
 }
