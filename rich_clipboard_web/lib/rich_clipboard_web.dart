@@ -120,7 +120,7 @@ extension _BlobText on Blob {
 @js.JS('ClipboardItem')
 @js.staticInterop
 class _ClipboardItem {
-  external factory _ClipboardItem(dynamic args);
+  external factory _ClipboardItem(js.JSAny? args);
 }
 
 extension _ClipboardItemImpl on _ClipboardItem {
@@ -129,8 +129,9 @@ extension _ClipboardItemImpl on _ClipboardItem {
   Future<Blob> getType(String mimeType) => _getType(mimeType).toDart;
 
   @js.JS('types')
-  external List<dynamic> get _types;
-  List<String> get types => _types.cast<String>();
+  external js.JSArray<js.JSString> get _types;
+  List<String> get types =>
+      _types.toDart.map((j) => j.toDart).toList(growable: false);
 }
 
 @js.JS('Clipboard')
@@ -140,10 +141,14 @@ class _Clipboard {}
 extension _ClipboardImpl on _Clipboard {
   @js.JS('read')
   external js.JSPromise<js.JSArray> _read();
-  Future<List<_ClipboardItem>> read() =>
-      _read().toDart.then((list) => list.toDart.cast<_ClipboardItem>());
+  Future<List<_ClipboardItem>> read() async {
+    var result = await _read().toDart;
+    return result.toDart.cast<_ClipboardItem>();
+  }
 
   @js.JS('write')
-  external js.JSPromise _write(List<_ClipboardItem> items);
-  Future<void> write(List<_ClipboardItem> items) => _write(items).toDart;
+  external js.JSPromise _write(js.JSArray items);
+  Future<void> write(List<_ClipboardItem> items) {
+    return _write(items.cast<js.JSAny>().toJS).toDart;
+  }
 }
